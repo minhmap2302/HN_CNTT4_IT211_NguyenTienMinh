@@ -1,0 +1,103 @@
+Phần 1 – Phân tích logic
+
+Client nhận về chuỗi dạng:
+
+[Movie@3a1b2c3d, Movie@4f2e1a0b]
+
+thay vì JSON vì trong đoạn code ban đầu, phương thức getMovies() đang trả về:
+
+return movies.toString();
+
+movies là một danh sách List<Movie>. Khi gọi toString() trên danh sách này, Java sẽ gọi tiếp toString() của từng đối tượng Movie.
+
+Tuy nhiên, class Movie không ghi đè phương thức toString(), nên Java sử dụng toString() mặc định của class Object. Kết quả mặc định sẽ có dạng:
+
+TênClass@hashCode
+
+Ví dụ:
+
+Movie@3a1b2c3d
+
+Vì vậy, client chỉ nhận được một chuỗi văn bản thông thường chứ không phải JSON hợp lệ. Frontend không thể parse chuỗi này thành dữ liệu phim để hiển thị.
+
+Nguyên nhân gốc rễ nằm ở dòng code:
+
+return movies.toString();
+
+và kiểu trả về của phương thức là:
+
+public String getMovies()
+
+Cách sửa đúng là để phương thức trả về trực tiếp List<Movie>. Khi sử dụng @RestController, Spring Boot sẽ tự động dùng Jackson để chuyển danh sách object Java thành JSON hợp lệ.
+Phần 2 – Sửa lỗi
+code đã sửa hoàn chỉnh:
+package com.example.movieapi.controller;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1")
+public class MovieController {
+
+    static class Movie {
+
+        private String movieId;
+        private String title;
+        private String genre;
+        private double rating;
+
+        public Movie(String movieId, String title, String genre, double rating) {
+            this.movieId = movieId;
+            this.title = title;
+            this.genre = genre;
+            this.rating = rating;
+        }
+
+        public String getMovieId() {
+            return movieId;
+        }
+
+        public void setMovieId(String movieId) {
+            this.movieId = movieId;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getGenre() {
+            return genre;
+        }
+
+        public void setGenre(String genre) {
+            this.genre = genre;
+        }
+
+        public double getRating() {
+            return rating;
+        }
+
+        public void setRating(double rating) {
+            this.rating = rating;
+        }
+    }
+
+    @GetMapping("/movies")
+    public List<Movie> getMovies() {
+        List<Movie> movies = new ArrayList<>();
+
+        movies.add(new Movie("M001", "Inception", "Sci-Fi", 8.8));
+        movies.add(new Movie("M002", "Parasite", "Drama", 8.6));
+
+        return movies;
+    }
+}

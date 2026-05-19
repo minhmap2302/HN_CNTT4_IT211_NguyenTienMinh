@@ -1,0 +1,175 @@
+Phần 1 – Lý thuyết
+1. So sánh @PathVariable và @RequestParam
+Tiêu chí	@PathVariable	@RequestParam
+Vị trí trên URL	Nằm trực tiếp trong đường dẫn URL	Nằm sau dấu ? trên URL
+Mục đích	Dùng để lấy định danh tài nguyên cụ thể	Dùng để lọc, tìm kiếm, phân trang, sắp xếp
+Ví dụ	/api/v1/movies/M001	/api/v1/movies?genre=Sci-Fi
+Ý nghĩa	Lấy phim có ID là M001	Lọc danh sách phim theo thể loại Sci-Fi
+2. Tình huống nào dùng cái nào?
+Tình huống A — Xem chi tiết phim
+
+Request:
+
+GET /api/v1/movies/M001
+
+Ở đây M001 là ID cụ thể của một bộ phim.
+
+Vì vậy dùng:
+
+@PathVariable
+
+Ví dụ:
+
+@GetMapping("/{movieId}")
+public Movie getMovieById(@PathVariable String movieId) {
+    ...
+}
+Tình huống B — Lọc phim theo thể loại
+
+Request:
+
+GET /api/v1/movies?genre=Sci-Fi
+
+Ở đây genre=Sci-Fi chỉ là điều kiện lọc danh sách phim, không phải định danh của một phim cụ thể.
+
+Vì vậy dùng:
+
+@RequestParam
+
+Ví dụ:
+
+@GetMapping
+public List<Movie> getMoviesByGenre(@RequestParam String genre) {
+    ...
+}
+3. Tại sao không nên hoán đổi cho nhau?
+
+Không nên dùng:
+
+GET /api/v1/movies/Sci-Fi
+
+để lọc thể loại, vì URL này dễ bị hiểu nhầm rằng Sci-Fi là movieId.
+
+Cũng không nên dùng:
+
+GET /api/v1/movies?movieId=M001
+
+để lấy chi tiết phim, vì movieId là định danh tài nguyên chính, nên đặt trực tiếp trong path sẽ rõ ràng và RESTful hơn.
+
+Thiết kế chuẩn RESTful hơn là:
+
+GET /api/v1/movies/M001
+
+để lấy một tài nguyên cụ thể.
+
+Và:
+
+GET /api/v1/movies?genre=Sci-Fi
+
+để lọc danh sách tài nguyên.
+Phần 2  – Thực thi
+package org.example.ptit_cntt4_it211_session04.controller;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/movies")
+public class MovieController {
+
+    static class Movie {
+
+        private String movieId;
+        private String title;
+        private String genre;
+        private double rating;
+
+        public Movie(String movieId, String title, String genre, double rating) {
+            this.movieId = movieId;
+            this.title = title;
+            this.genre = genre;
+            this.rating = rating;
+        }
+
+        public String getMovieId() {
+            return movieId;
+        }
+
+        public void setMovieId(String movieId) {
+            this.movieId = movieId;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getGenre() {
+            return genre;
+        }
+
+        public void setGenre(String genre) {
+            this.genre = genre;
+        }
+
+        public double getRating() {
+            return rating;
+        }
+
+        public void setRating(double rating) {
+            this.rating = rating;
+        }
+    }
+
+    private List<Movie> getSampleMovies() {
+        List<Movie> movies = new ArrayList<>();
+
+        movies.add(new Movie("M001", "Inception", "Sci-Fi", 8.8));
+        movies.add(new Movie("M002", "Parasite", "Drama", 8.6));
+        movies.add(new Movie("M003", "Interstellar", "Sci-Fi", 8.7));
+        movies.add(new Movie("M004", "The Dark Knight", "Action", 9.0));
+
+        return movies;
+    }
+
+    @GetMapping
+    public List<Movie> getMoviesByGenre(@RequestParam(required = false) String genre) {
+        List<Movie> movies = getSampleMovies();
+
+        if (genre == null || genre.isEmpty()) {
+            return movies;
+        }
+
+        List<Movie> result = new ArrayList<>();
+
+        for (Movie movie : movies) {
+            if (movie.getGenre().equalsIgnoreCase(genre)) {
+                result.add(movie);
+            }
+        }
+
+        return result;
+    }
+
+    @GetMapping("/{movieId}")
+    public Movie getMovieById(@PathVariable String movieId) {
+        List<Movie> movies = getSampleMovies();
+
+        for (Movie movie : movies) {
+            if (movie.getMovieId().equalsIgnoreCase(movieId)) {
+                return movie;
+            }
+        }
+
+        return null;
+    }
+}
